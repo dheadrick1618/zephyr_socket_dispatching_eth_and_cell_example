@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "log.h": "c"
+    },
+    "nrf-connect.debugging.bindings": {
+        "${workspaceFolder}/build": "Launch build",
+        "${workspaceFolder}/build/zephyr_socket_dispatching_eth_and_cell_example/tfm": "Launch build"
+    }
+}

@@ -1,3 +1,9 @@
+/*
+ * Socket Dispatcher Demo - Testing Multiple Network Interfaces with MQTT
+ */
+
+#include "mqtt_api.h"
+
 #include <errno.h>
 #include <fcntl.h> /* For O_NONBLOCK */
 #include <modem/lte_lc.h>
@@ -8,7 +14,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/socket.h>
-// #include <zephyr/net/socket_poll.h>
 
 LOG_MODULE_REGISTER(socket_dispatcher_demo, LOG_LEVEL_INF);
 
@@ -686,12 +691,78 @@ static void run_interface_tests(const char* iface_name)
   LOG_INF("==========================================\n");
 }
 
+/* Test MQTT functionality on specified interface */
+static int test_mqtt_interface(const char* iface_name)
+{
+  int      err;
+  uint32_t message_counter = 0;
+
+  LOG_INF("==========================================");
+  LOG_INF("Starting MQTT test on interface: %s", iface_name);
+  LOG_INF("==========================================");
+
+  /* Test basic socket binding first */
+  err = test_socket_binding(iface_name);
+  if (err)
+  {
+    LOG_ERR("Socket binding test failed for %s: %d", iface_name, err);
+    return err;
+  }
+
+  /* Connect to MQTT broker */
+  err = mqtt_api_connect(iface_name);
+  if (err)
+  {
+    LOG_ERR("Failed to connect to MQTT broker via %s: %d", iface_name, err);
+    return err;
+  }
+
+  LOG_INF("MQTT connected successfully via %s", iface_name);
+
+  /* Publish a few test messages */
+  for (int i = 0; i < 3; i++)
+  {
+    err = mqtt_api_publish_status(++message_counter);
+    if (err)
+    {
+      LOG_ERR("Failed to publish message %d: %d", message_counter, err);
+    }
+    else
+    {
+      LOG_INF("Published message %d successfully", message_counter);
+    }
+
+    /* Process MQTT input and keepalive */
+    mqtt_api_process_input();
+    mqtt_api_handle_keepalive();
+
+    /* Wait between messages */
+    k_sleep(K_SECONDS(5));
+  }
+
+  LOG_INF("==========================================");
+  LOG_INF("MQTT test on interface %s completed", iface_name);
+  LOG_INF("==========================================\n");
+
+  return 0;
+}
+
 int main(void)
 {
-  int err;
+  int      err;
+  uint32_t publish_counter   = 0;
+  uint64_t next_publish_time = 0;
 
-  LOG_INF("Socket Dispatcher Demo - Testing Multiple Network Interfaces");
+  LOG_INF("Socket Dispatcher Demo - Testing Multiple Network Interfaces with MQTT");
   k_msleep(1000);
+
+  /* Initialize MQTT API */
+  err = mqtt_api_init();
+  if (err)
+  {
+    LOG_ERR("Failed to initialize MQTT API: %d", err);
+    return err;
+  }
 
   /* Setup DHCP for all interfaces */
   struct net_if* iface = net_if_get_default();
@@ -704,6 +775,7 @@ int main(void)
   if (err)
   {
     LOG_WRN("Modem initialization failed or timed out: %d", err);
+    LOG_INF("Continuing with Ethernet interface only...");
   }
   else
   {
@@ -713,19 +785,24 @@ int main(void)
 
   /* Wait for interfaces to initialize and get IP addresses */
   LOG_INF("Waiting for interfaces to initialize...");
-  k_sleep(K_SECONDS(10));
+  k_sleep(K_SECONDS(5));
 
-  /* Run Cellular modem interface tests */
-  run_interface_tests(IFACE_CELLULAR);
+  // /* Run basic interface tests on cellular if available */
+  // if (err == 0)
+  // {
+  //   run_interface_tests(IFACE_CELLULAR);
+  // }
 
-  /* Run Ethernet interface tests */
-  run_interface_tests(IFACE_ETHERNET);
+  // /* Run basic interface tests on Ethernet */
+  // run_interface_tests(IFACE_ETHERNET);
 
-  /* TODO - Test connecting to an MQTT broker, and publishing data to a topic, using eth interface*/
-  //..
-  //..
-
-  LOG_INF("Demo complete - all interface tests finished");
+  /* Test MQTT on Ethernet interface */
+  LOG_INF("\n*** Starting MQTT Demo ***");
+  err = test_mqtt_interface(IFACE_ETHERNET);
+  if (err)
+  {
+    LOG_ERR("MQTT test failed on Ethernet interface: %d", err);
+  }
 
   return 0;
 }

@@ -1,0 +1,52 @@
+/* boards/nrf9151dk_nrf9151_ns.overlay */
+
+/* Disable any interfaces we're not using */
+&i2c0 {
+	status = "disabled";
+};
+
+&i2c2 {
+	status = "disabled";
+};
+
+/* Add pinctrl configurations in the root devicetree node */
+&pinctrl {
+	spi2_default: spi2_default {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 20)>,  
+			<NRF_PSEL(SPIM_MOSI, 0, 21)>, 
+			<NRF_PSEL(SPIM_MISO, 0, 19)>; 
+			// nordic,drive-mode = <NRF_DRIVE_H-1H1>;
+		};
+	};
+	
+	spi2_sleep: spi2_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 20)>,
+			<NRF_PSEL(SPIM_MOSI, 0, 21)>,
+			<NRF_PSEL(SPIM_MISO, 0, 19)>;
+			low-power-enable;
+		};
+	};
+};
+
+/* Configure SPI2 for W5500 with non-conflicting pins */
+&spi2 {
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	pinctrl-0 = <&spi2_default>;
+	pinctrl-1 = <&spi2_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio0 22 GPIO_ACTIVE_LOW>; 
+	
+	w5500: w5500@0 {
+		compatible = "wiznet,w5500";
+		label="w5500";
+		status = "okay";			
+		reg = <0x0>;
+		spi-max-frequency = <1000000>;
+		int-gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;  
+		reset-gpios = <&gpio0 24 GPIO_ACTIVE_LOW>; 
+		local-mac-address = [00 08 DC 00 00 01];
+	};
+};

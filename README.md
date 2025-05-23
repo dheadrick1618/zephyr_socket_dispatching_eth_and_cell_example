@@ -6,7 +6,7 @@ I have created this because I was unable to find a good example anywhere online 
 
 ## Application summary
 
-To keep things consice and straighforward all the code in this project exists in the main.c source file.
+TODO 
 
 ## Why use Socket Dispatching?
 
@@ -20,7 +20,19 @@ The reason we must use Zephyr Socket Dispatching is as follows:
 
 ## Issues with Zephyr MQTT Client API
 
-...
+... TENTATIVE ...
+
+The Zephyr MQTT client lib does not allow us to to use the socket dispatcher - it calls connect() right after the socket() fxn, and we are not able use socket dispatcher via setsockopt() before the connect() fxn is called, without modifying the Zephyr code directly.
+
+It seems like we should be able to use a 'custom transport layer' which allows us to use our own defined functions with fxn pointers in the associated mqtt transport fxn calls.
+
+## Issues with DNS hostname resolution using getaddrinfo
+
+Some posts on the Nordic Devzone have also expressed issues - not being able to use the getaddrinfo() fxn with a specified network interface. See the following posts:
+
+https://devzone.nordicsemi.com/f/nordic-q-a/96529/nrf9160-ethernet-and-lte-both-available-but-cannot-open-sockets-under-ethernet/466049
+
+https://devzone.nordicsemi.com/f/nordic-q-a/108023/aws_iot-example-without-network-offloading/536706
 
 ## Resources
 
